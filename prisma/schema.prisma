@@ -34,12 +34,18 @@ model Farm {
   updatedAt DateTime @updatedAt
 }
 
-model Dealer {
-  ID     String @id @default(cuid())
+enum CustomerRole {
+  CUSTOMER
+  DEALER
+}
+
+model Customer {
+  ID     String       @id @default(cuid())
   name   String
   email  String
   lineID String
   tel    String
+  role   CustomerRole
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,9 +85,9 @@ model ProductGroup {
 }
 
 model Order {
-  ID       String  @id @default(cuid())
-  product  Product @relation(fields: [productID], references: [ID])
-  dealer   Dealer  @relation(fields: [dealerID], references: [ID])
+  ID       String   @id @default(cuid())
+  product  Product  @relation(fields: [productID], references: [ID])
+  dealer   Customer @relation(fields: [dealerID], references: [ID])
   amount   Int
   price    Float
   slip     String

@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
         {
-            name: 'api-newatlantis',
+            name: 'api-egg-handle',
             script: './dist/index.js',
             env: {
                 NODE_ENV: 'production',

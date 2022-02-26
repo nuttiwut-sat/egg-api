@@ -5,6 +5,7 @@ import {userRouter} from './module/user';
 import {farmRouter} from './module/farm';
 import {productRouter} from './module/product';
 import multer from 'multer';
+import { customerRouter } from './module/customer';
 // import 'source-map-support/register';
 
 // Instead of:
@@ -33,6 +34,7 @@ mainRouter.use('/auth', authRouter);
 mainRouter.use('/user', userRouter);
 mainRouter.use('/farm', farmRouter);
 mainRouter.use('/product', productRouter);
+mainRouter.use('/customer', customerRouter);
 
 // mainRouter.use('/images/:dir/:key', async (req, res) => {
 //     const key = req.params.key;

@@ -6,7 +6,7 @@ import {GetDataFromToken} from '../engine/auth_util';
 import {PRouter} from '../engine/router';
 import {sendMailAWS, textResetPassword} from '../engine/sendmail';
 import {v4 as uuidv4} from 'uuid';
-import {PrismaClient, Role, User} from '@prisma/client';
+import {Customer, PrismaClient, Role, User} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -21,6 +21,15 @@ const inputUser = (user: User) => {
         role: user.role,
     };
 };
+const inputCustomer = (user: Customer) => {
+    return {
+        name: user.name.trim() || '',
+        email: user.email.trim() || '',
+        lineID: user.lineID.trim() || '',
+        tel: user.tel.trim() || '',
+        role: user.role,
+    };
+};
 
 const getUser = {
     ID: true,
@@ -29,13 +38,13 @@ const getUser = {
     role: true,
 };
 
-currentRouter.post('/', async (req: any, _req) => {
+currentRouter.post('/register', async (req: any, _req) => {
     const body = req.body;
-    const userInput = inputUser(body);
+    const customerInput = inputCustomer(body);
 
-    const user = await prisma.user.create({
+    const user = await prisma.customer.create({
         data: {
-            ...userInput,
+            ...customerInput,
         },
     });
 
@@ -75,37 +84,58 @@ currentRouter.get('/', async (req: any, _req) => {
 currentRouter.post('/login', async (req: any, _res) => {
     const body = req.body;
     const username = body.username as string;
+    const lineID = body.lineID as string;
+    if (username) {
+        const user = await prisma.user.findFirst({
+            where: {
+                username: username.trim(),
+            },
+            select: {
+                ...getUser,
+                password: true,
+            },
+        });
+        if (!user) {
+            throw new Error('ไม่มีชื่อผู้ใช้นี้ในระบบ');
+        }
+        const keyIsValid = bcrypt.compareSync(body.password, user.password);
+        if (!keyIsValid) {
+            throw new Error('รหัสผ่านไม่ถูกต้อง');
+        }
+        var token = jwt.sign({id: user.ID}, secretKey, {
+            expiresIn: 86400, // 24 hours
+        });
+        return {
+            id: user.ID,
+            name: user.name,
+            username: user.name,
+            role: user.role,
+            accessToken: token,
+        };
+    } else if (lineID) {
+        const customer = await prisma.customer.findFirst({
+            where: {
+                lineID: lineID.trim(),
+            },
+        });
 
-    const user = await prisma.user.findFirst({
-        where: {
-            username: username.trim(),
-        },
-        select: {
-            ...getUser,
-            password: true,
-        },
-    });
-
-    if (!user) {
-        throw new Error('ไม่มีชื่อผู้ใช้นี้ในระบบ');
+        if (!customer) {
+            throw new Error('ไม่มีชื่อผู้ใช้นี้ในระบบ');
+        }
+        var token = jwt.sign({id: customer.ID}, secretKey, {
+            expiresIn: 86400, // 24 hours
+        });
+        return {
+            id: customer.ID,
+            name: customer.name,
+            email: customer.email,
+            lineID: customer.lineID,
+            tel: customer.tel,
+            role: customer.role,
+            accessToken: token,
+        };
     }
-
-    const keyIsValid = bcrypt.compareSync(body.password, user.password);
-
-    if (!keyIsValid) {
-        throw new Error('รหัสผ่านไม่ถูกต้อง');
-    }
-
-    var token = jwt.sign({id: user.ID}, secretKey, {
-        expiresIn: 86400, // 24 hours
-    });
-
-    return {
-        id: user.ID,
-        name: user.name,
-        username: user.username,
-        accessToken: token,
-    };
+    throw new Error('ไม่มีชื่อผู้ใช้นี้ในระบบ');
 });
 
 // currentRouter.post('/reset-pass-mail', async (req: any, _res) => {
@@ -218,11 +248,33 @@ currentRouter.post('/get-user-by-token', async (req: any, _res) => {
             ...getUser,
         },
     });
-
+    let token;
     if (!user) {
-        throw new Error('ไม่มีชื่อผู้ใช้นี้ในระบบ');
+        // Customer
+        const customer = await prisma.customer.findFirst({
+            where: {
+                ID: userId,
+            },
+        });
+
+        if (!customer) {
+            throw new Error('ไม่มีชื่อผู้ใช้นี้ในระบบ');
+        }
+        token = jwt.sign({id: customer.ID}, secretKey, {
+            expiresIn: 86400, // 24 hours
+        });
+
+        return {
+            id: customer.ID,
+            name: customer.name,
+            email: customer.email,
+            lineID: customer.lineID,
+            tel: customer.tel,
+            role: customer.role,
+            accessToken: token,
+        };
     }
-    var token = jwt.sign({id: user.ID}, secretKey, {
+    token = jwt.sign({id: user.ID}, secretKey, {
         expiresIn: 86400, // 24 hours
     });
 

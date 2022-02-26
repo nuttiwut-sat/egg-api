@@ -12,14 +12,6 @@ const prisma = new PrismaClient();
 const currentRouter = new PRouter();
 
 const secretKey = process.env.SECRET_AUTH_PASS || 'KEY';
-const inputUser = (user: User) => {
-    return {
-        name: user.name.trim() || '',
-        username: user.username.trim() || '',
-        password: bcrypt.hashSync(user.password.trim() || '', 8),
-        role: user.role,
-    };
-};
 
 const getUser = {
     ID: true,
@@ -28,16 +20,7 @@ const getUser = {
     role: true,
     createdAt: true,
 };
-currentRouter.post('/', async (req: any, _req) => {
-    const input = inputUser(req.body);
-    const user = await prisma.user.create({
-        data: {
-            ...input,
-        },
-    });
 
-    return user;
-});
 currentRouter.get('/', async (req: any, _req) => {
     const dataFromToken = await GetDataFromToken(req).catch(e => {
         console.error(e);
@@ -52,4 +35,28 @@ currentRouter.get('/', async (req: any, _req) => {
     return user;
 });
 
-export const userRouter = currentRouter.router;
+currentRouter.get('/role/:role', async (req: any, _req) => {
+    const dataFromToken = await GetDataFromToken(req).catch(e => {
+        console.error(e);
+        throw new Error('Unauthorized');
+    });
+    const role = req.params.role;
+
+    const user = await prisma.customer.findMany({
+        where: {
+            role,
+        },
+        select: {
+            ID: true,
+            email: true,
+            name: true,
+            lineID: true,
+            tel: true,
+            createdAt: true,
+        },
+    });
+
+    return user;
+});
+
+export const customerRouter = currentRouter.router;
